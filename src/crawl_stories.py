@@ -14,8 +14,8 @@ def normalize_status(status):
 
     mapping = {
         "Completed": "Hoàn thành",
-        "Ongoing": "Đang ra",
-        "Dropped": "Tạm ngưng"
+        "OnGoing": "Đang ra",
+        "Hiatus": "Tạm ngưng"
     }
 
     return mapping.get(status, status)
