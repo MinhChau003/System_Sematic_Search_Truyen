@@ -6,7 +6,7 @@ from rank_bm25 import BM25Okapi
 
 from preprocess import create_search_text, tokenize
 
-DB_PATH = "../../database/stories.db"
+DB_PATH = "../database/stories.db"    #cd src
 
 def load_data():
     conn = sqlite3.connect(DB_PATH)
@@ -46,18 +46,18 @@ def build_bm25(df):
 def save_bm25(bm25, documents, df):
 
     # Nếu thư mục chưa tồn tại thì tạo
-    os.makedirs("../../models/bm25", exist_ok=True)
+    os.makedirs("../models/bm25", exist_ok=True)
 
     # Lưu BM25
-    with open("../../models/bm25/bm25.pkl", "wb") as f:
+    with open("../models/bm25/bm25.pkl", "wb") as f:
         pickle.dump(bm25, f)
 
     # Lưu documents đã tokenize
-    with open("../../models/bm25/documents.pkl", "wb") as f:
+    with open("../models/bm25/documents.pkl", "wb") as f:
         pickle.dump(documents, f)
 
     # Lưu DataFrame
-    df.to_pickle("../../models/bm25/stories.pkl")
+    df.to_pickle("../models/bm25/stories.pkl")
 
     print("Đã lưu BM25 thành công!")
 
