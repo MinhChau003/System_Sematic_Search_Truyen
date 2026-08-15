@@ -3,13 +3,13 @@ import pandas as pd
 
 from preprocess import normalize_text, tokenize
 
-with open("../models/bm25/bm25.pkl", "rb") as f:
+with open("../../models/bm25/bm25.pkl", "rb") as f:
     bm25 = pickle.load(f)
 
-with open("../models/bm25/documents.pkl", "rb") as f:
+with open("../../models/bm25/documents.pkl", "rb") as f:
     documents = pickle.load(f)
 
-df = pd.read_pickle("../models/bm25/stories.pkl")
+df = pd.read_pickle("../../models/bm25/stories.pkl")
 
 def search(query, top_k=10):
 
