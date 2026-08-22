@@ -1,0 +1,8 @@
+# Môi trường ảo Python
+venv/
+.venv/
+env/
+
+# Bộ nhớ tạm Python
+__pycache__/
+*.pyc
