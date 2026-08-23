@@ -22,7 +22,8 @@ def load_story_metadata():
         [
             "ID",
             "Tags",
-            "Description"
+            "Description",
+            "Chapters"
         ]
     ].copy()
 
@@ -31,7 +32,8 @@ def load_story_metadata():
         columns={
             "ID": "story_id",
             "Tags": "tags",
-            "Description": "description"
+            "Description": "description",
+            "Chapters": "chapters"
         }
     )
 
@@ -194,6 +196,7 @@ def merge_candidates(bm25, semantic, stories):
             "tags",
             "description",
             "status",
+            "chapters",
             "url",
             "bm25_rank",
             "bm25_score",
@@ -234,6 +237,11 @@ def save_results(df):
     print(
         f"Candidate có Description: "
         f"{df['description'].notna().sum()}/{len(df)}"
+    )
+    
+    print(
+        f"Candidate có Chapters   : "
+        f"{df['chapters'].notna().sum()}/{len(df)}"
     )
 
     print("\n===== Nguồn Candidate =====")
