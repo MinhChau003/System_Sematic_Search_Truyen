@@ -7,7 +7,9 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from preprocess_semantic import normalize_text
 
-MODEL_DIR = "../../models/semantic"
+# --- MODEL_DIR tuyệt đối dựa trên vị trí file, không phụ thuộc cwd ---
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(CURRENT_DIR, "..", "..", "models", "semantic")
 MODEL_NAME = "AITeamVN/Vietnamese_Embedding"
 
 FAISS_PATH = os.path.join(
@@ -20,6 +22,7 @@ STORIES_PATH = os.path.join(
     "stories.pkl"
 )
 
+
 def load_model():
     # Load mô hình Embedding
 
@@ -31,12 +34,14 @@ def load_model():
 
     return model
 
+
 def load_index():
     # Đọc FAISS Index
 
     index = faiss.read_index(FAISS_PATH)
 
     return index
+
 
 def load_stories():
     # Đọc metadata truyện
@@ -46,6 +51,7 @@ def load_stories():
         stories = pickle.load(f)
 
     return stories
+
 
 def embed_query(model, query):
     # Sinh Embedding cho Query
@@ -60,6 +66,7 @@ def embed_query(model, query):
     faiss.normalize_L2(embedding)
 
     return embedding
+
 
 def search(query,
            model,
@@ -86,6 +93,7 @@ def search(query,
 
     return results
 
+
 def display_results(results):
 
     print("\n===== KẾT QUẢ =====\n")
@@ -101,7 +109,8 @@ def display_results(results):
         print(f"   Score     : {row['score']:.4f}")
 
         print()
-        
+
+
 def main():
 
     model = load_model()

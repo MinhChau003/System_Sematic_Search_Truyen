@@ -1,0 +1,6 @@
+{
+  "python.analysis.extraPaths": [
+    "./src/bm25",
+    "./src/semantic"
+  ]
+}
