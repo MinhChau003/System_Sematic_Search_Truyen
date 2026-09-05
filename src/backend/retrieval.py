@@ -64,18 +64,24 @@ def _enrich_with_db(df: pd.DataFrame) -> pd.DataFrame:
     trong SQLite để lấy đầy đủ metadata: author, description, tags, status,
     chapters, views, url.
 
-    Nếu df không có cột "id" (không xác định được join key), trả về nguyên bản
-    kèm cảnh báo -- khi đó cần kiểm tra lại stories.pkl có cột id hay không.
+    Tự nhận diện cột khoá join là "id" hoặc "story_id" (2 file stories.pkl của
+    BM25 và Semantic có thể đặt tên cột id khác nhau).
     """
-    if "id" not in df.columns:
+    id_col = None
+    for candidate in ("id", "story_id"):
+        if candidate in df.columns:
+            id_col = candidate
+            break
+
+    if id_col is None:
         print(
-            "[Cảnh báo] Không tìm thấy cột 'id' trong kết quả retrieval "
-            "-> không join được với SQLite. Kiểm tra lại stories.pkl có cột "
-            "'id' trùng với id trong database/stories.db không."
+            "[Cảnh báo] Không tìm thấy cột 'id' hoặc 'story_id' trong kết quả "
+            "retrieval -> không join được với SQLite. Kiểm tra lại tên cột khoá "
+            "trong stories.pkl."
         )
         return df
 
-    ids = [int(i) for i in df["id"].tolist()]
+    ids = [int(i) for i in df[id_col].tolist()]
     if not ids:
         return df
 
@@ -86,7 +92,7 @@ def _enrich_with_db(df: pd.DataFrame) -> pd.DataFrame:
     conn.close()
 
     # Gắn lại score từ kết quả retrieval (SQLite không có cột score)
-    score_map = dict(zip(df["id"], df["score"]))
+    score_map = dict(zip(df[id_col], df["score"]))
     db_df["score"] = db_df["id"].map(score_map)
 
     db_df = db_df.sort_values(by="score", ascending=False).reset_index(drop=True)
@@ -138,20 +144,90 @@ def extract_negated_phrases(query: str) -> list:
     return phrases
 
 
+# Từ điển đồng nghĩa cho các khái niệm phủ định hay gặp trong bộ query thực tế
+# -- mô tả truyện hay diễn đạt cùng 1 ý bằng nhiều từ khác nhau (VD: harem có
+# thể được viết là "nhiều nữ chính", "hậu cung"...). Không đầy đủ tuyệt đối,
+# mở rộng dần khi phát hiện thêm case mới qua Error Analysis.
+_NEGATION_SYNONYMS = {
+    "harem": ["harem", "hậu cung", "nhiều nữ chính", "đa nữ chính", "tam thê tứ thiếp", "đa thê"],
+    "trọng sinh": ["trọng sinh", "tái sinh", "sống lại", "trùng sinh"],
+    "xuyên không": ["xuyên không", "xuyên việt", "xuyên qua", "xuyên thư", "xuyên sách"],
+    "tình cảm": ["tình cảm", "yêu đương", "lãng mạn"],
+}
+
+
+def _expand_synonyms(phrase: str) -> list:
+    return _NEGATION_SYNONYMS.get(phrase, [phrase])
+
+
+# Regex kiểm tra xem ngay TRƯỚC 1 occurrence của cụm bị phủ định có phải là
+# 1 từ phủ định hay không (VD "...#Không hậu cung" -> đứng trước "hậu cung" là "Không").
+# Nếu đúng, occurrence đó đang XÁC NHẬN sự vắng mặt (tín hiệu TỐT, không phải vi phạm).
+_NEGATION_CONFIRM_SUFFIX = re.compile(
+    r"(không|chẳng)\s+(?:có\s+)?(?:yếu\s+tố\s+)?(?:thuộc\s+)?(?:thể\s+loại\s+)?$",
+    flags=re.IGNORECASE,
+)
+
+
+def _phrase_confirmed_absent_everywhere(text: str, phrase: str, window: int = 30) -> bool:
+    """
+    True nếu phrase KHÔNG xuất hiện trong text, HOẶC mọi occurrence của nó đều
+    được phủ định ngay trước (VD '#Không hậu cung') -> an toàn, không phải vi phạm.
+    False nếu có ít nhất 1 occurrence xuất hiện mà KHÔNG đi kèm phủ định phía trước
+    -> truyện thực sự có yếu tố đó, cần loại.
+    """
+    for m in re.finditer(re.escape(phrase), text):
+        preceding = text[max(0, m.start() - window):m.start()]
+        if not _NEGATION_CONFIRM_SUFFIX.search(preceding):
+            return False
+    return True
+
+
 def _apply_negation_filter(df: pd.DataFrame, phrases: list) -> pd.DataFrame:
-    """Loại các dòng có genre hoặc tags chứa 1 trong các cụm bị phủ định."""
+    """
+    Loại các dòng thực sự chứa yếu tố bị phủ định trong query.
+
+    - Mỗi phrase được mở rộng qua _NEGATION_SYNONYMS (VD "harem" cũng khớp
+      "hậu cung", "nhiều nữ chính"...) vì mô tả truyện hay diễn đạt cùng 1 ý
+      bằng nhiều từ khác nhau, không phải lúc nào cũng dùng đúng từ trong query.
+    - title/genre/tags: field ngắn, hiếm khi tự viết dạng "Không X" -> chỉ cần
+      substring match đơn giản.
+    - description: field dài, THƯỜNG chứa các tag ẩn dạng "#Không hậu cung",
+      "#Đơn nữ chính"... -> cần kiểm tra ngữ cảnh phủ định phía trước để tránh
+      loại nhầm truyện đang XÁC NHẬN không có yếu tố đó (xem
+      _phrase_confirmed_absent_everywhere).
+    """
     if not phrases or df.empty:
         return df
 
-    genre_col = df["genre"].fillna("") if "genre" in df.columns else pd.Series([""] * len(df), index=df.index)
-    tags_col = df["tags"].fillna("") if "tags" in df.columns else pd.Series([""] * len(df), index=df.index)
-    combined = (genre_col + " " + tags_col).str.lower()
+    def _col(name):
+        return df[name].fillna("") if name in df.columns else pd.Series([""] * len(df), index=df.index)
 
-    mask = pd.Series(True, index=df.index)
-    for phrase in phrases:
-        mask &= ~combined.str.contains(re.escape(phrase), na=False)
+    title_l = _col("title").str.lower()
+    genre_l = _col("genre").str.lower()
+    tags_l = _col("tags").str.lower()
+    desc_l = _col("description").str.lower()
 
-    return df[mask]
+    keep = []
+    for idx in df.index:
+        short_text = f"{title_l.loc[idx]} {genre_l.loc[idx]} {tags_l.loc[idx]}"
+        desc_text = desc_l.loc[idx]
+
+        row_ok = True
+        for phrase in phrases:
+            for term in _expand_synonyms(phrase):
+                if term in short_text:
+                    row_ok = False
+                    break
+                if term in desc_text and not _phrase_confirmed_absent_everywhere(desc_text, term):
+                    row_ok = False
+                    break
+            if not row_ok:
+                break
+
+        keep.append(row_ok)
+
+    return df[pd.Series(keep, index=df.index)]
 
 
 def search(query: str, method: str = "semantic", top_k: int = 10) -> pd.DataFrame:
