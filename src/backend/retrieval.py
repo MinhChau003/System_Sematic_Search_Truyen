@@ -2,7 +2,7 @@
 Backend chính của hệ thống -- ĐÃ REFACTOR theo pipeline Tầng 2:
 
     Query
-      -> Query Parser        (query_parser.py)      : trích negation/status/chapters/genre
+      -> Query Parser        (query_parser.py)      : trích negation/status/chapters/genre/tag
       -> Retrieval pool rộng (search_bm25/search_semantic)
       -> SQLite enrich       (join lấy đủ metadata)
       -> Constraint Filter   (constraint_filter.py)  : lọc cứng theo các constraint đã parse
@@ -47,12 +47,13 @@ import constraint_filter as cf         # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# Cache: model semantic + danh sách genre (đều tốn chi phí load, chỉ load 1 lần)
+# Cache: model semantic + danh sách genre/tag (đều tốn chi phí load, chỉ load 1 lần)
 # ---------------------------------------------------------------------------
 _semantic_model = None
 _semantic_index = None
 _semantic_stories = None
 _known_genres = None
+_known_tags = None
 
 
 def _load_semantic_once():
@@ -86,6 +87,29 @@ def _load_known_genres_once() -> list:
         _known_genres = sorted(genres)
 
     return _known_genres
+
+
+def _load_known_tags_once() -> list:
+    """MỚI -- y hệt _load_known_genres_once() nhưng trên cột `tags`.
+    Dùng cho Query Parser nhận diện tag_hints (VD "Huyễn Tưởng Tu Tiên",
+    "Trọng Sinh", "Harem"...) đúng theo dữ liệu thật của dự án."""
+    global _known_tags
+
+    if _known_tags is None:
+        conn = sqlite3.connect(DB_PATH)
+        rows = conn.execute("SELECT DISTINCT tags FROM stories WHERE tags IS NOT NULL").fetchall()
+        conn.close()
+
+        tags = set()
+        for (t,) in rows:
+            for part in t.split(","):
+                part = part.strip()
+                if part:
+                    tags.add(part)
+
+        _known_tags = sorted(tags)
+
+    return _known_tags
 
 
 def _enrich_with_db(df: pd.DataFrame) -> pd.DataFrame:
@@ -141,7 +165,8 @@ def search(query: str, method: str = "semantic", top_k: int = 10, verbose: bool 
     method = method.lower().strip()
 
     known_genres = _load_known_genres_once()
-    parsed = parse_query(query, known_genres)
+    known_tags = _load_known_tags_once()
+    parsed = parse_query(query, known_genres, known_tags)
 
     if verbose and parsed.has_constraints():
         print(f"[Query Parser] {parsed}")

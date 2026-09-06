@@ -128,6 +128,27 @@ def filter_genre(df: pd.DataFrame, genre_hints: list) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# 2b. TAG filter (MỚI) -- hard filter trên cột `tags`, có fallback y hệt genre.
+# ---------------------------------------------------------------------------
+def filter_tags(df: pd.DataFrame, tag_hints: list) -> pd.DataFrame:
+    if not tag_hints or df.empty or "tags" not in df.columns:
+        return df
+
+    hints_lower = [t.lower() for t in tag_hints]
+    tags_lower = df["tags"].fillna("").str.lower()
+
+    mask = tags_lower.apply(lambda t: any(h in t for h in hints_lower))
+    filtered = df[mask]
+
+    if filtered.empty:
+        print(f"[Tag filter] Không còn kết quả nào khớp tag {tag_hints} "
+              f"-> bỏ qua filter này, giữ nguyên kết quả trước lọc.")
+        return df
+
+    return filtered
+
+
+# ---------------------------------------------------------------------------
 # 3. STATUS filter -- hard filter, có fallback.
 # ---------------------------------------------------------------------------
 def filter_status(df: pd.DataFrame, status) -> pd.DataFrame:
@@ -186,6 +207,7 @@ def apply_constraints(df: pd.DataFrame, parsed) -> pd.DataFrame:
     df = filter_status(df, parsed.status)
     df = filter_chapters(df, parsed.chapter_constraint)
     df = filter_genre(df, parsed.genre_hints)
+    df = filter_tags(df, parsed.tag_hints)
     return df
 
 
