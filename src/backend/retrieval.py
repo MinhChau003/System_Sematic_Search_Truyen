@@ -190,10 +190,24 @@ def search(query: str, method: str = "semantic", top_k: int = 10, verbose: bool 
 
     before = len(results)
     results = cf.apply_constraints(results, parsed)
-    if verbose and parsed.has_constraints():
-        print(f"[Constraint Filter] {before} -> {len(results)} kết quả sau khi lọc.")
+    after_negation = len(results)
 
-    results = results.sort_values(by="score", ascending=False).head(top_k).reset_index(drop=True)
+    if verbose and parsed.has_constraints():
+        print(f"[Constraint Filter] Negation: {before} -> {after_negation} kết quả "
+              f"(sau khi loại vi phạm phủ định).")
+        if after_negation > 0 and "_match_count" in results.columns:
+            best = results["_match_count"].max()
+            n_full = int((results["_match_count"] == best).sum())
+            print(f"[Constraint Filter] Rerank theo genre/tag/status/chapter -- "
+                  f"{n_full}/{after_negation} kết quả khớp đầy đủ nhất (match_count={best}).")
+
+    if not results.empty and "_match_count" in results.columns:
+        results = results.sort_values(by=["_match_count", "score"], ascending=[False, False])
+        results = results.drop(columns=["_match_count"])
+    else:
+        results = results.sort_values(by="score", ascending=False)
+
+    results = results.head(top_k).reset_index(drop=True)
 
     return results
 

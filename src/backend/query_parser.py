@@ -188,6 +188,20 @@ def _expand_concept_synonyms(query_lower: str):
             extra_tags.extend(val.get("tags", []))
     return extra_genres, extra_tags
 
+def _remove_contradictory_hints(hints: list, negated_phrases: list) -> list:
+    """Loại khỏi genre_hints/tag_hints những hint trùng/lồng với 1 cụm đang
+    bị phủ định trong CÙNG câu (VD negated=['hệ thống'] thì không được để
+    genre_hints chứa 'Hệ Thống' nữa -- tự mâu thuẫn: vừa loại vừa yêu cầu)."""
+    if not negated_phrases:
+        return hints
+    filtered = []
+    for h in hints:
+        h_lower = h.lower()
+        contradictory = any(h_lower in neg or neg in h_lower for neg in negated_phrases)
+        if not contradictory:
+            filtered.append(h)
+    return filtered
+
 
 # ---------------------------------------------------------------------------
 # 5. Gộp lại thành 1 object duy nhất
@@ -221,6 +235,8 @@ def parse_query(query: str, known_genres: list = None, known_tags: list = None) 
     known_tags = known_tags or []
     query_lower = query.lower()
 
+    negated = extract_negated_phrases(query)
+
     genre_hits = extract_genre_hints(query, known_genres)
     tag_hits = extract_tag_hints(query, known_tags)
 
@@ -232,9 +248,13 @@ def parse_query(query: str, known_genres: list = None, known_tags: list = None) 
         if t not in tag_hits:
             tag_hits.append(t)
 
+    # Mới: loại bỏ mâu thuẫn negation vs genre/tag hint
+    genre_hits = _remove_contradictory_hints(genre_hits, negated)
+    tag_hits = _remove_contradictory_hints(tag_hits, negated)
+
     return ParsedQuery(
         raw_query=query,
-        negated_phrases=extract_negated_phrases(query),
+        negated_phrases=negated,
         status=extract_status_constraint(query),
         chapter_constraint=extract_chapter_constraint(query),
         genre_hints=genre_hits,

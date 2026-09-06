@@ -79,11 +79,42 @@ def _phrase_confirmed_absent_everywhere(text: str, term: str, window: int = 20) 
     return found_any
 
 
+# MỚI -- các cụm chứa từ đa nghĩa (VD "hệ thống" = nghĩa thường + nghĩa thể
+# loại) mà khi xuất hiện trong description theo nghĩa THÔNG THƯỜNG thì
+# KHÔNG được tính là vi phạm phủ định.
+_NEGATION_FALSE_POSITIVE_PHRASES = {
+    "hệ thống": [
+        "hệ thống giáo dục", "hệ thống chính trị", "hệ thống pháp luật",
+        "hệ thống quan lại", "hệ thống thi cử", "hệ thống chính quyền",
+        "hệ thống quân sự", "hệ thống hành chính", "hệ thống pháp lý",
+    ],
+}
+
+
+def _desc_contains_term_as_violation(desc_text: str, term: str, window: int = 20) -> bool:
+    """True nếu có ÍT NHẤT 1 occurrence của `term` trong desc_text là VI PHẠM
+    THẬT -- loại trừ occurrence tự-phủ-định ('không hệ thống') và occurrence
+    thuộc cụm nghĩa thông thường không liên quan trope ('hệ thống giáo dục')."""
+    exceptions = _NEGATION_FALSE_POSITIVE_PHRASES.get(term, [])
+    start = 0
+    while True:
+        idx = desc_text.find(term, start)
+        if idx == -1:
+            return False
+        context_before = desc_text[max(0, idx - window):idx]
+        context_full = desc_text[max(0, idx - window): idx + len(term) + window]
+        is_self_negated = "không" in context_before
+        is_false_positive = any(exc in context_full for exc in exceptions)
+        if not is_self_negated and not is_false_positive:
+            return True
+        start = idx + len(term)
+
+
 def _row_violates_phrase(short_text: str, desc_text: str, phrase: str) -> bool:
     for term in _expand_synonyms(phrase):
         if term in short_text:
             return True
-        if term in desc_text and not _phrase_confirmed_absent_everywhere(desc_text, term):
+        if _desc_contains_term_as_violation(desc_text, term):
             return True
     return False
 
@@ -199,15 +230,80 @@ def filter_chapters(df: pd.DataFrame, chapter_constraint) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# 5. Áp toàn bộ constraint theo thứ tự: negation -> status -> chapters -> genre
-#    (negation trước tiên vì đây là điều kiện loại trừ rõ ràng nhất)
+# 5. SOFT BOOST (MỚI) -- thay cho hard filter genre/tag/status/chapter.
+#    Đúng theo rubric relevance: mismatch các tiêu chí này chỉ hạ mức độ
+#    liên quan xuống 1, KHÔNG loại bỏ hoàn toàn (chỉ negation mới loại
+#    cứng về 0). Nên thay vì exclude, ta ĐẾM số tiêu chí khớp rồi RERANK.
+# ---------------------------------------------------------------------------
+def _match_genre(row, genre_hints):
+    if not genre_hints:
+        return None
+    genre_lower = str(row.get("genre") or "").lower()
+    return any(h.lower() in genre_lower for h in genre_hints)
+
+
+def _match_tag(row, tag_hints):
+    if not tag_hints:
+        return None
+    tags_lower = str(row.get("tags") or "").lower()
+    return any(h.lower() in tags_lower for h in tag_hints)
+
+
+def _match_status(row, status):
+    if not status:
+        return None
+    return str(row.get("status") or "").lower() == status.lower()
+
+
+def _match_chapters(row, chapter_constraint):
+    if not chapter_constraint:
+        return None
+    op, num = chapter_constraint
+    op_func = _OPS.get(op)
+    try:
+        val = float(row.get("chapters"))
+    except (TypeError, ValueError):
+        return False
+    return bool(op_func(val, num))
+
+
+def compute_match_count(df: pd.DataFrame, parsed) -> pd.Series:
+    """Đếm số tiêu chí SOFT (genre/tag/status/chapter) mỗi dòng thoả, CHỈ
+    tính trên tiêu chí THẬT SỰ được hỏi trong query. Dùng để rerank."""
+    if df.empty:
+        return pd.Series([], dtype=int)
+
+    counts = pd.Series(0, index=df.index)
+    checks = [
+        (parsed.genre_hints, lambda r: _match_genre(r, parsed.genre_hints)),
+        (parsed.tag_hints, lambda r: _match_tag(r, parsed.tag_hints)),
+        (parsed.status, lambda r: _match_status(r, parsed.status)),
+        (parsed.chapter_constraint, lambda r: _match_chapters(r, parsed.chapter_constraint)),
+    ]
+    for constraint, check_fn in checks:
+        if not constraint:
+            continue
+        matched = df.apply(check_fn, axis=1)
+        counts = counts + matched.astype(int)
+
+    return counts
+
+# ---------------------------------------------------------------------------
+# 6. Như note dưới
 # ---------------------------------------------------------------------------
 def apply_constraints(df: pd.DataFrame, parsed) -> pd.DataFrame:
+    """
+    THIẾT KẾ MỚI (đúng theo rubric relevance):
+        - NEGATION: HARD FILTER duy nhất (vi phạm phủ định luôn = 0 điểm).
+        - GENRE / TAG / STATUS / CHAPTER: SOFT BOOST -- không loại bỏ, chỉ
+          thêm cột '_match_count' để retrieval.py rerank ưu tiên.
+    """
     df = filter_negation(df, parsed.negated_phrases)
-    df = filter_status(df, parsed.status)
-    df = filter_chapters(df, parsed.chapter_constraint)
-    df = filter_genre(df, parsed.genre_hints)
-    df = filter_tags(df, parsed.tag_hints)
+    if df.empty:
+        return df
+
+    df = df.copy()
+    df["_match_count"] = compute_match_count(df, parsed)
     return df
 
 
