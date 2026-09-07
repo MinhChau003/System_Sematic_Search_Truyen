@@ -27,6 +27,7 @@ pip install -r requirements.txt
 
 ## Cấu trúc thư mục
 
+```text
 System_Sematic_Search_Truyen/
 ├── data/
 │   ├── raw/                    # Dữ liệu crawl thô (stories_raw.xlsx, story_urls.txt)
@@ -51,10 +52,11 @@ System_Sematic_Search_Truyen/
 ├── app.py                      # Giao diện Streamlit
 ├── requirements.txt
 └── README.md
-
+```
 
 ## Kiến trúc pipeline (Tầng 2)
 
+```text
 Query
 → Query Parser (query_parser.py)
 trích: negated_phrases, status, chapter_constraint, genre_hints, tag_hints
@@ -64,7 +66,7 @@ trích: negated_phrases, status, chapter_constraint, genre_hints, tag_hints
 - NEGATION: hard filter duy nhất
 - GENRE / TAG / STATUS / CHAPTER: soft boost (rerank theo số tiêu chí khớp)
 → Sort → Top-K
-
+```
 
 Chi tiết đầy đủ về thiết kế, đánh giá Before/After, hạn chế và hướng phát triển: xem 
 
