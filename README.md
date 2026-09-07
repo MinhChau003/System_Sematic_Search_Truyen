@@ -29,26 +29,26 @@ pip install -r requirements.txt
 
 System_Sematic_Search_Truyen/
 ├── data/
-│ ├── raw/ # Dữ liệu crawl thô (stories_raw.xlsx, story_urls.txt)
-│ ├── cleaned/ # Dữ liệu đã làm sạch (stories_cleaned.xlsx)
-│ └── queries/ # Bộ query: all/dev/test_queries.xlsx
+│   ├── raw/                    # Dữ liệu crawl thô (stories_raw.xlsx, story_urls.txt)
+│   ├── cleaned/                # Dữ liệu đã làm sạch (stories_cleaned.xlsx)
+│   └── queries/                # Bộ query: all/dev/test_queries.xlsx
 ├── database/
-│ └── stories.db # SQLite, bảng stories
+│   └── stories.db              # SQLite, bảng `stories`
 ├── models/
-│ ├── bm25/ # bm25.pkl, documents.pkl, stories.pkl
-│ └── semantic/ # embeddings.npy, faiss.index, stories.pkl
+│   ├── bm25/                   # bm25.pkl, documents.pkl, stories.pkl
+│   └── semantic/               # embeddings.npy, faiss.index, stories.pkl
 ├── results/
-│ └── evaluation/ # Gold Relevance, Error Analysis, kết quả Before/After
-│ ├── archive/ # Script/output trung gian đã hoàn thành nhiệm vụ
-│ └── gold_after/ # Kết quả đánh giá After (Hướng A, pipeline Tầng 2)
+│   └── evaluation/             # Gold Relevance, Error Analysis, kết quả Before/After
+│       ├── archive/            # Script/output trung gian đã hoàn thành nhiệm vụ
+│       └── gold_after/         # Kết quả đánh giá After (Hướng A, pipeline Tầng 2)
 ├── src/
-│ ├── GetData/ # Crawl + làm sạch dữ liệu
-│ ├── bm25/ # Build & search BM25
-│ ├── semantic/ # Build embedding, FAISS, search Semantic
-│ ├── backend/ # Query Parser + Constraint Filter + Retrieval orchestrator
-│ └── evaluation/ # Đánh giá, Error Analysis, Before/After
-│ └── gold_after/ # Script đo After đầy đủ
-├── app.py # Giao diện Streamlit
+│   ├── GetData/                # Crawl + làm sạch dữ liệu
+│   ├── bm25/                   # Build & search BM25
+│   ├── semantic/               # Build embedding, FAISS, search Semantic
+│   ├── backend/                # Query Parser + Constraint Filter + Retrieval orchestrator
+│   └── evaluation/             # Đánh giá, Error Analysis, Before/After
+│       └── gold_after/         # Script đo After đầy đủ
+├── app.py                      # Giao diện Streamlit
 ├── requirements.txt
 └── README.md
 
