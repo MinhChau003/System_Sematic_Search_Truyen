@@ -1,4 +1,3 @@
-
 import os
 import sys
 import time
@@ -247,7 +246,7 @@ with st.sidebar:
     st.markdown("""
     <div class="side-note">
       <b>HẠ TẦNG TÀNG KINH</b><br>
-      Semantic: PhoBERT + FAISS<br>
+      Semantic: AITeamVN/Vietnamese_Embedding + FAISS<br>
       BM25: lexical retrieval<br>
       SQLite: metadata + constraint filtering
     </div>
@@ -268,7 +267,7 @@ if page == "Tra Cứu Tàng Kinh":
       <h1>🌌 Thiên Cơ Truyện Các</h1>
       <p>
         Hệ thống khám phá tiểu thuyết bằng ngôn ngữ tự nhiên
-        • PhoBERT & FAISS Semantic Search • BM25 Retrieval
+        • AITeamVN/Vietnamese Sentence Embedding & FAISS • BM25 Retrieval
       </p>
     </div>
     """, unsafe_allow_html=True)
@@ -389,7 +388,7 @@ if page == "Tra Cứu Tàng Kinh":
 
         with d:
             name = "Semantic Search" if method == "semantic" else "BM25"
-            engine = "PhoBERT + FAISS" if method == "semantic" else "BM25 Index"
+            engine = "AITeamVN/Vietnamese_Embedding + FAISS" if method == "semantic" else "BM25 Index"
             st.markdown(
                 f'<div class="stat"><div class="stat-label">Thuật toán áp dụng</div>'
                 f'<div class="stat-value" style="font-size:17px;">{name}</div>'
@@ -563,7 +562,7 @@ Streamlit
 
 ### Retrieval
 
-**Semantic Search:** PhoBERT + FAISS.
+**Semantic Search:** [AITeamVN/Vietnamese_Embedding](https://huggingface.co/AITeamVN/Vietnamese_Embedding) (SentenceTransformer) + FAISS.
 
 **BM25:** lexical retrieval, dùng làm baseline và phương thức tìm kiếm từ khóa.
 
