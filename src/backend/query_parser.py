@@ -17,7 +17,7 @@ import re
 
 
 # ---------------------------------------------------------------------------
-# 1. NEGATION -- dời từ retrieval.py sang đây làm nguồn chuẩn duy nhất.
+# 1. NEGATION -- dời từ retrieval.py sang làm nguồn chuẩn duy nhất.
 # ---------------------------------------------------------------------------
 _NEGATION_FILLERS = [
     "có yếu tố ", "có ", "thuộc thể loại ", "thuộc ",
@@ -26,7 +26,7 @@ _NEGATION_FILLERS = [
 ]
 
 _NEGATION_PATTERN = re.compile(
-    r"không\s+([^,\.]+?)(?=\s+(?:và|nhưng)\b|,|\.|$)",
+    r"không\s+([^,\.]+?)(?=\s+(?:và|nhưng|tuy nhiên)\b|,|\.|$)",
     flags=re.IGNORECASE,
 )
 
@@ -155,7 +155,7 @@ _CONCEPT_SYNONYMS = {
     "tu tiên": {
         "genres": ["Tiên Hiệp"],
         "tags": ["Huyễn Tưởng Tu Tiên", "Thần Thoại Tu Chân", "Tu Chân Văn Minh",
-                  "Tiên Lữ Kỳ Duyên", "Cổ Điển Tiên Hiệp"],
+                  "Cổ Điển Tiên Hiệp", "Tiên Lữ Kỳ Duyên"],
     },
     "tu chân": {
         "genres": ["Tiên Hiệp"],

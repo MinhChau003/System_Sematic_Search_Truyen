@@ -18,7 +18,7 @@ import pandas as pd
 # 1. NEGATION filter (đồng nghĩa + tự phủ định ngữ cảnh)
 # ---------------------------------------------------------------------------
 _NEGATION_SYNONYMS = {
-    "harem": ["harem", "hậu cung", "nhiều nữ chính", "đa nữ chính", "tam thê tứ thiếp", "đa thê"],
+    "harem": ["harem", "hậu cung", "nhiều nữ chính", "đa nữ chính", "tam thê tứ thiếp", "đa thê", "hợp hoan tông"],
     "trọng sinh": [
         "trọng sinh", "tái sinh", "sống lại", "trùng sinh",
         "sống lại một đời", "trở lại quá khứ", "quay về quá khứ", "sống lại từ đầu",
@@ -37,7 +37,10 @@ _NEGATION_SYNONYMS = {
         "bàn tay vàng", "kim thủ chi", "ngón tay vàng", "buff mạnh",
     ],
     "kim thủ chỉ": ["kim thủ chi", "kim thủ chỉ", "bàn tay vàng", "ngón tay vàng", "hệ thống"],
-    "hệ thống": ["hệ thống", "auto game", "bảng", "máy gian lận", "kim thủ chi", "kim thủ chỉ"],
+    "hệ thống": ["hệ thống", "auto game", "bảng", "máy gian lận", "kim thủ chi", "kim thủ chỉ",
+         "bảng hệ thống", "giao diện hệ thống", "màn hình hệ thống", "khung hệ thống", 
+         "cửa sổ hệ thống", "bảng điều khiển hệ thống", "bảng trạng thái", "bảng chỉ số" , "bảng thuần thục", "bảng kỹ năng",       
+    ],
     "tu tiên": ["tu tiên", "tu chân", "tu luyện", "tu đạo", "tu hành", "tiên đạo", "thành tiên"],
     "võ hiệp": ["võ hiệp", "võ lâm", "giang hồ", "hiệp khách", "cao thủ võ lâm"],
     "huyền huyễn": ["huyền huyễn", "huyền ảo", "huyền bí", "thế giới huyền huyễn"],

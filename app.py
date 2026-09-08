@@ -109,7 +109,13 @@ st.markdown("""
     padding:15px;
     margin-bottom:11px;
 }
-.rank {color:#18d9f4;font-size:10px;font-weight:900;}
+.rank {
+    color:#18d9f4;
+    font-size:18px;
+    font-weight:900;
+    display:inline-block;
+    min-width:42px;
+}
 .title {color:#dce9f7;font-size:16px;font-weight:800;}
 .author {color:#8c9aaf;font-size:10px;margin-top:3px;}
 .score-box {
@@ -284,6 +290,9 @@ if page == "Tra Cứu Tàng Kinh":
             "Tìm truyện tu tiên có hệ thống, không harem, trên 500 chương"
         )
 
+    if "pending_suggestion" in st.session_state:
+        st.session_state.query_input = st.session_state.pop("pending_suggestion")
+
     query = st.text_input(
         "query",
         key="query_input",
@@ -308,7 +317,7 @@ if page == "Tra Cứu Tàng Kinh":
     for col, s in zip(cols, suggestions):
         with col:
             if st.button(s, key="suggest_" + s):
-                st.session_state.query_input = s
+                st.session_state.pending_suggestion = s
                 st.rerun()
 
     clicked = st.button("🔍  Tra Cứu Tàng Kinh", use_container_width=True)
