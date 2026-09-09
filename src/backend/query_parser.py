@@ -26,7 +26,7 @@ _NEGATION_FILLERS = [
 ]
 
 _NEGATION_PATTERN = re.compile(
-    r"không\s+([^,\.]+?)(?=\s+(?:và|nhưng|tuy nhiên)\b|,|\.|$)",
+    r"không\s+([^,\.]+?)(?=\s+(?:và|nhưng|tuy nhiên|với|hoặc|cùng)\b|,|\.|$)",
     flags=re.IGNORECASE,
 )
 
@@ -86,14 +86,22 @@ def extract_status_constraint(query: str):
 # 3. CHAPTER constraint: "hơn 500 chương", "dưới 100 chương"...
 # ---------------------------------------------------------------------------
 _CHAPTER_PATTERN = re.compile(
-    r"(hơn|trên|từ|ít nhất|tối thiểu|dưới|ít hơn|tối đa|không quá)\s+(\d+)\s*chương",
+    r"(hơn|trên|từ|ít nhất|tối thiểu|dưới|ít hơn|tối đa|không quá|thấp hơn|cao hơn|nhiều hơn)\s+(\d+)\s*chương",
     flags=re.IGNORECASE,
 )
 
 _CHAPTER_OP_MAP = {
     "hơn": ">", "trên": ">", "từ": ">=", "ít nhất": ">=", "tối thiểu": ">=",
     "dưới": "<", "ít hơn": "<", "tối đa": "<=", "không quá": "<=",
+    "thấp hơn": "<", "cao hơn": ">", "nhiều hơn": ">",
 }
+# Match cụm DÀI trước (VD "thấp hơn" trước "hơn") để tránh match nhầm 1 phần
+# của cụm ghép, gây hiểu ngược nghĩa (VD "thấp hơn" bị hiểu thành "hơn").
+_CHAPTER_KEYWORDS_SORTED = sorted(_CHAPTER_OP_MAP.keys(), key=len, reverse=True)
+_CHAPTER_PATTERN = re.compile(
+    r"(" + "|".join(re.escape(k) for k in _CHAPTER_KEYWORDS_SORTED) + r")\s+(\d+)\s*chương",
+    flags=re.IGNORECASE,
+)
 
 
 def extract_chapter_constraint(query: str):

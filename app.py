@@ -60,6 +60,9 @@ st.markdown("""
     font-weight:800;
     letter-spacing:.4px;
     text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:6px;
 }
 .chips {display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .chip {
@@ -154,12 +157,32 @@ st.markdown("""
     line-height:1.55;
     margin-top:12px;
 }
-div[data-testid="stButton"] > button {
+div[data-testid="stButton"] button[kind="primary"] {
     border:1px solid #12cce9;
     background:linear-gradient(100deg,#0bd7ed,#089bc7);
     color:#03131a;
     font-weight:900;
     border-radius:6px;
+}
+div[data-testid="stButton"] button[kind="primary"]:hover {
+    border:1px solid #12cce9;
+    color:#03131a;
+}
+/* Clear button — muted/outline so it reads as a secondary action */
+div[data-testid="stButton"] button[kind="secondary"] {
+    background:#111827;
+    color:#9fb0c8;
+    border:1px solid #2b3950;
+    font-weight:800;
+    border-radius:6px;
+}
+div[data-testid="stButton"] button[kind="secondary"]:hover {
+    border:1px solid #3d5170;
+    color:#dbeafe;
+}
+/* Keep the text input the same height as the buttons beside it */
+.stTextInput {
+    margin-top:0;
 }
 .stTextInput input {
     background:#090f1b !important;
@@ -280,28 +303,9 @@ if page == "Tra Cứu Tàng Kinh":
 
     st.markdown('<div class="panel">', unsafe_allow_html=True)
 
+    # ---- 1) Ý NIỆM GỢI Ý (hiển thị trước) ----
     st.markdown(
-        '<div class="small-label">NHẬP Ý NIỆM HOẶC MÔ TẢ CÂU CHUYỆN BẠN MUỐN TÌM</div>',
-        unsafe_allow_html=True,
-    )
-
-    if "query_input" not in st.session_state:
-        st.session_state.query_input = (
-            "Tìm truyện tu tiên có hệ thống, không harem, trên 500 chương"
-        )
-
-    if "pending_suggestion" in st.session_state:
-        st.session_state.query_input = st.session_state.pop("pending_suggestion")
-
-    query = st.text_input(
-        "query",
-        key="query_input",
-        label_visibility="collapsed",
-        placeholder="Ví dụ: truyện tiên hiệp không có hệ thống, hơn 500 chương...",
-    )
-
-    st.markdown(
-        '<div class="small-label" style="margin-top:9px;">Ý NIỆM GỢI Ý</div>',
+        '<div class="small-label">✦ Ý NIỆM GỢI Ý</div>',
         unsafe_allow_html=True,
     )
 
@@ -316,11 +320,63 @@ if page == "Tra Cứu Tàng Kinh":
     cols = st.columns(len(suggestions))
     for col, s in zip(cols, suggestions):
         with col:
-            if st.button(s, key="suggest_" + s):
+            if st.button(
+                s,
+                key="suggest_" + s,
+                type="primary",
+                use_container_width=True,
+            ):
                 st.session_state.pending_suggestion = s
                 st.rerun()
 
-    clicked = st.button("🔍  Tra Cứu Tàng Kinh", use_container_width=True)
+    st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
+
+    # ---- 2) Khởi tạo / cập nhật giá trị ô nhập TRƯỚC khi tạo widget ----
+    if "query_input" not in st.session_state:
+        st.session_state.query_input = (
+            "Tìm truyện tu tiên có hệ thống, không harem, trên 500 chương"
+        )
+
+    if "pending_suggestion" in st.session_state:
+        st.session_state.query_input = st.session_state.pop("pending_suggestion")
+
+    if st.session_state.get("clear_query"):
+        st.session_state.query_input = ""
+        st.session_state.clear_query = False
+
+    # ---- 3) Ô tìm kiếm + nút Xóa + nút Tra Cứu trên cùng một hàng ----
+    search_col, clear_col, btn_col = st.columns(
+        [6, 1.1, 2.2], vertical_alignment="bottom"
+    )
+
+    with search_col:
+        query = st.text_input(
+            "query",
+            key="query_input",
+            label_visibility="collapsed",
+            placeholder="🔍  Ví dụ: truyện tiên hiệp không có hệ thống, hơn 500 chương...",
+        )
+
+    with clear_col:
+        clear_clicked = st.button(
+            "🧹 Xóa",
+            key="clear_query_btn",
+            type="secondary",
+            help="Dọn trắng dòng truy vấn",
+            use_container_width=True,
+        )
+        if clear_clicked:
+            st.session_state.clear_query = True
+            st.rerun()
+
+    with btn_col:
+        clicked = st.button(
+            "🔍  Tra Cứu Tàng Kinh",
+            key="search_btn",
+            type="primary",
+            use_container_width=True,
+        )
+
     st.markdown("</div>", unsafe_allow_html=True)
 
     if clicked:
